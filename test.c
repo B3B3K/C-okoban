@@ -31,11 +31,6 @@ typedef struct
 
 typedef struct
 {
-    int wasdu[5]; //Movement as Up, Left, Down, Right, Redo
-} movement;
-
-typedef struct
-{
     SDL_Window   *window;
     SDL_Renderer *renderer;
     int running;
@@ -129,25 +124,25 @@ int S_SDL(sdl2 *a)
 }
 
 //FUNCTION 3 - Input Checker With Proper Key-bindings
-int I_Handle(SDL_Event * event, movement * keyboard)
+int I_Handle(SDL_Event * event, thing * object)
 {
     switch (event->key.keysym.sym)
         {
             case SDLK_w:
-                keyboard->wasdu[0] = const_U;  // Up
+                M_Bind_Log(object, const_U);  // Up
                 return 5;
             case SDLK_a:
-                keyboard->wasdu[1] = const_L;  // Left
+                M_Bind_Log(object, const_L);  // Left
                 return 7;
             case SDLK_s:
-                keyboard->wasdu[2] = const_D;  // Down
+                M_Bind_Log(object, const_D);  // Down
                 return 11;
             case SDLK_d:
-                keyboard->wasdu[3] = const_R;  // Right
+                M_Bind_Log(object, const_R);  // Right
                 return 13;
             case SDLK_u:
-                keyboard->wasdu[4] = const_K;  // Redo
-                return 27;
+                M_Bind_Redo(object);  // Redo
+                return 17;
             default:
                 return 0;
         }
@@ -165,7 +160,7 @@ int M_Bind_Log(thing * object, const int key)
 //FUNCTION 5 - Redo Last count_R Movement
 static int M_Bind_Redo(thing * object)
 {
-	static int buf = object->redo[0];
+	int buf = object->redo[0];
 	if( buf == -1 ) return -1;
 	for ( int i = 0 ; i < count_R - 1 ; i++ )
 	{
