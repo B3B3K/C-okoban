@@ -7,7 +7,7 @@
 //DEF's
 #define window_X  300 //Window X Axis Size 
 #define window_Y  400 //Window Y Axis Size
-#define thing_S   10 //Player Size
+#define thing_S   10  //Player Size
 #define const_U   5   //integer  % const_U == 0
 #define const_L   7   //integer  % const_L == 0
 #define const_D   11  //integer  % const_D == 0
@@ -56,7 +56,7 @@ int P_Coll(thing object, const int go); //Object to Check, Axis
 int S_SDL(sdl2 *a); //App 
 
 //FUNCTION's - Main
-int main()
+int main(int argc, char * argv[]) //1.exe arg1, arg2 ... argn (n = argc, argn = argv[n])
 {   
     sdl2 sukuban = {NULL, NULL};
     switch (S_SDL(&sukuban))
