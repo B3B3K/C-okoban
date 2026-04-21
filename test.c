@@ -158,7 +158,7 @@ int I_Handle(SDL_Event * event, thing * object)
             case SDLK_u:
             {
                 int last = M_Bind_Redo(object);  // Redo
-                if (!last){M_Thing_Redo(object, last);}
+                if (last){M_Thing_Redo(object, last);}
                 return 17;
             }
             default:
