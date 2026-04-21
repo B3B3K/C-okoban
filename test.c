@@ -15,14 +15,18 @@
 #define const_K   17  //integer  % const_K == 0
 #define speed_X   thing_S  //Movement count X
 #define speed_Y   thing_S  //Movement count Y
+#define count_R   5		   //Possible Re-Do Count
+#define r_P 	  0		   //Player Red
+#define g_P 	  0		   //Player Green
+#define b_P 	  0		   //Player Blue
 
 //STRUCT's
 typedef struct
 {
-    int     type; //Block Type
+    int     type; //Player == +1; Box = 0; Bomb = -1;
     int color[3]; //Block Color as R, G, B
     int   pos[2]; //Block Position as X, Y
-    int  redo[4]; //Last Four Movement as Up = 5, Left = 7, Down = 11, Right = 13
+    int  redo[count_R]; //Last Four Movement as Up = 5, Left = 7, Down = 11, Right = 13
 } thing;
 
 typedef struct
@@ -47,7 +51,7 @@ int I_Handle(SDL_Event * event, movement * keyboard);             //Input, Write
 //FUNCTION's - Movement
 static int  M_Bind (const int key); //Mod Check Key
 static void M_Thing(SDL_Renderer * renderer, thing object, const int key); //Window, Object to Move, Read Key
-static void M_Bind_Redo(thing * object); //Object to Shift Right
+static int  M_Bind_Redo(thing * object); //Object to Shift Right
 static void M_Bind_Log (thing * object, const int key); //Object to Shift Left, Read Key
 
 //FUNCTION's - Physics
@@ -71,6 +75,13 @@ int main(int argc, char * argv[]) //1.exe arg1, arg2 ... argn (n = argc, argn = 
         default: break;
     }
     SDL_Event event;
+    thing player =
+    {
+		.type = 1,
+		.color = {r_P, g_P, b_P},
+		.pos  = {140, 190},
+		.redo = {-1,-1,-1,-1,-1}
+	};
     
     while(sukuban.running)
     {
@@ -80,7 +91,9 @@ int main(int argc, char * argv[]) //1.exe arg1, arg2 ... argn (n = argc, argn = 
         if ( event.type == SDL_QUIT ) sukuban.running = 0;
 
         if (event.type == SDL_KEYDOWN && I_Handle(&event, &keyboard))
-        printf("button pressed\n");
+        {
+			
+		}	
 
         }
         
@@ -122,20 +135,42 @@ int I_Handle(SDL_Event * event, movement * keyboard)
         {
             case SDLK_w:
                 keyboard->wasdu[0] = const_U;  // Up
-                return 1;
+                return 5;
             case SDLK_a:
                 keyboard->wasdu[1] = const_L;  // Left
-                return 1;
+                return 7;
             case SDLK_s:
                 keyboard->wasdu[2] = const_D;  // Down
-                return 1;
+                return 11;
             case SDLK_d:
                 keyboard->wasdu[3] = const_R;  // Right
-                return 1;
+                return 13;
             case SDLK_u:
                 keyboard->wasdu[4] = const_K;  // Redo
-                return 1;
+                return 27;
             default:
                 return 0;
         }
+}
+
+//FUNCTION 4 - Log Last count_R Input for Redo Function
+int M_Bind_Log(thing * object, const int key)
+{
+    for ( int i = count_R - 1 ; i > 0 ; i-- )
+        object->redo[i] = object->redo[i - 1];
+    object->redo[0] = key;
+    return 0;
+}
+
+//FUNCTION 5 - Redo Last count_R Movement
+static int M_Bind_Redo(thing * object)
+{
+	static int buf = object->redo[0];
+	if( buf == -1 ) return -1;
+	for ( int i = 0 ; i < count_R - 1 ; i++ )
+	{
+		object->redo[i] = object->redo[i+1];
+	}
+	object->redo[count_R - 1] = -1;
+	return buf;
 }
