@@ -38,14 +38,15 @@ typedef struct
 
 //FUNCTION's - Draw
 static void D_Grid (SDL_Renderer * renderer, int h, int w);               //Window, Target   X, Target   Y  
-static void D_Thing(SDL_Renderer * renderer, int x, int y, thing object); //Window, Position X, Position Y, Object to Draw
+static void D_Thing(SDL_Renderer * renderer, thing * object); //Window, Position X, Position Y, Object to Draw
+static void D_Color(thing * object); //Object to Color
 
 //FUNCTION's - Input
 int I_Handle(SDL_Event * event, thing * object);           //Input, Write Key
 
 //FUNCTION's - Movement
 static int  M_Bind (const int key); //Mod Check Key
-static void M_Thing(SDL_Renderer * renderer, thing object, const int key); //Window, Object to Move, Read Key
+static void M_Thing(SDL_Renderer * renderer, thing * object, const int key); //Window, Object to Move, Read Key
 static int  M_Bind_Redo(thing * object); //Object to Shift Right
 static void M_Bind_Log (thing * object, const int key); //Object to Shift Left, Read Key
 
@@ -96,7 +97,7 @@ int main(int argc, char * argv[]) //1.exe arg1, arg2 ... argn (n = argc, argn = 
 }
 
 //FUNCTION 1 - Draw Grid
-static void D_Grid (SDL_Renderer * renderer, int h, int w)
+static void D_Grid (SDL_Renderer * renderer, int w, int h)
 {
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	
@@ -169,4 +170,42 @@ static int M_Bind_Redo(thing * object)
 	}
 	object->redo[count_R - 1] = -1;
 	return buf;
+}
+
+//FUNCTION 6 - Draw Object Based On Type
+static void D_Thing(SDL_Renderer * renderer, thing * object)
+{
+	SDL_SetRenderDrawColor(renderer, object->color[0], object->color[1], object->color[2], 255);
+	SDL_Rect rect = {object->pos[0], object->pos[1], thing_S, thing_S};
+	SDL_RenderFillRect(renderer, &rect);
+}
+
+//FUNCTION 7 - Color Object Based on Type
+static void D_Color(thing * object)
+{
+	int r , g , b ;
+	switch (object->type)
+	{
+		case  1:
+			r = 255; g = 255; b = 255; break;
+		case  0:
+			r = 0  ; g = 255; b =   0; break;
+		case -1:
+			r = 255; g =   0; b =   0; break;
+	};
+	object->color[0] = r;
+	object->color[1] = g;
+	object->color[2] = b;
+}
+
+//FUNCTION 8 - Move Thing Without Collision Detection - Only For Test Purposes
+static void M_Thing(SDL_Renderer * renderer, thing * object, const int key)
+{
+	switch (key)
+	{
+		case const_U: object->pos[1] -= speed_Y; break;
+		case const_D: object->pos[1] += speed_Y; break;
+		case const_L: object->pos[0] -= speed_X; break;
+		case const_R: object->pos[0] += speed_X; break; 
+	}
 }
