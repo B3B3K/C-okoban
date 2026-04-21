@@ -12,6 +12,7 @@
 #define const_L   7   //integer  % const_L == 0
 #define const_D   11  //integer  % const_D == 0
 #define const_R   13  //integer  % const_R == 0
+#define const_K   17  //integer  % const_K == 0
 #define speed_X   thing_S  //Movement count X
 #define speed_Y   thing_S  //Movement count Y
 
@@ -33,6 +34,7 @@ typedef struct
 {
     SDL_Window   *window;
     SDL_Renderer *renderer;
+    int running;
 } sdl2;
 
 //FUNCTION's - Draw
@@ -58,13 +60,30 @@ int S_SDL(sdl2 *a); //App
 //FUNCTION's - Main
 int main(int argc, char * argv[]) //1.exe arg1, arg2 ... argn (n = argc, argn = argv[n])
 {   
-    sdl2 sukuban = {NULL, NULL};
+    sdl2 sukuban = {NULL, NULL, 0};
+    movement keyboard;
+
     switch (S_SDL(&sukuban))
     {
         case 1: printf(" \nvideo start failed"); return 0; break;
         case 2: printf("\nwindow start failed"); return 0; break;
         case 3: printf("\nrender start failed"); return 0; break;
         default: break;
+    }
+    SDL_Event event;
+    
+    while(sukuban.running)
+    {
+        while (SDL_PollEvent(&event))
+        {
+
+        if ( event.type == SDL_QUIT ) sukuban.running = 0;
+
+        if (event.type == SDL_KEYDOWN && I_Handle(&event, &keyboard))
+        printf("button pressed\n");
+
+        }
+        
     }
     return 0;
 }
@@ -92,5 +111,31 @@ int S_SDL(sdl2 *a)
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!a->renderer) return 3;
 
+    a->running = 1;
     return 0;
+}
+
+//FUNCTION 3 - Input Checker With Proper Key-bindings
+int I_Handle(SDL_Event * event, movement * keyboard)
+{
+    switch (event->key.keysym.sym)
+        {
+            case SDLK_w:
+                keyboard->wasdu[0] = const_U;  // Up
+                return 1;
+            case SDLK_a:
+                keyboard->wasdu[1] = const_L;  // Left
+                return 1;
+            case SDLK_s:
+                keyboard->wasdu[2] = const_D;  // Down
+                return 1;
+            case SDLK_d:
+                keyboard->wasdu[3] = const_R;  // Right
+                return 1;
+            case SDLK_u:
+                keyboard->wasdu[4] = const_K;  // Redo
+                return 1;
+            default:
+                return 0;
+        }
 }
