@@ -46,9 +46,10 @@ int I_Handle(SDL_Event * event, thing * object);           //Input, Write Key
 
 //FUNCTION's - Movement
 static int  M_Bind (const int key); //Mod Check Key
-static void M_Thing(SDL_Renderer * renderer, thing * object, const int key); //Window, Object to Move, Read Key
+static void M_Thing(thing * object, const int key); //Window, Object to Move, Read Key
 static int  M_Bind_Redo(thing * object); //Object to Shift Right
 static void M_Bind_Log (thing * object, const int key); //Object to Shift Left, Read Key
+static void M_Thing_Redo(thing * object, const int key); //Object to Move, Read Key
 
 //FUNCTION's - Physics
 int P_Wall(thing object, const int go); //Object to Check, Axis
@@ -70,6 +71,7 @@ int main(int argc, char * argv[]) //1.exe arg1, arg2 ... argn (n = argc, argn = 
         default: break;
     }
     SDL_Event event;
+    int key_press;
     thing player =
     {
 		.type = 1,
@@ -85,11 +87,22 @@ int main(int argc, char * argv[]) //1.exe arg1, arg2 ... argn (n = argc, argn = 
 
         if ( event.type == SDL_QUIT ) sukuban.running = 0;
 
-        if (event.type == SDL_KEYDOWN && I_Handle(&event, &player))
+        if (event.type == SDL_KEYDOWN)
         {
-			;
+			key_press = I_Handle(&event, &player);
+			
+			if (key_press) M_Thing(&player, key_press);
 		}	
+		
+		SDL_SetRenderDrawColor(sukuban.renderer, 0, 0, 0, 255);
+		SDL_RenderClear(sukuban.renderer);
 
+		D_Grid(sukuban.renderer, window_X, window_Y);
+		D_Color(&player);
+		D_Thing(sukuban.renderer, &player);
+
+		SDL_RenderPresent(sukuban.renderer);
+		
         }
         
     }
@@ -105,7 +118,6 @@ static void D_Grid (SDL_Renderer * renderer, int w, int h)
         SDL_RenderDrawLine(renderer, x, 0, x, h);
     for(int y = 0; y < h; y += thing_S)
         SDL_RenderDrawLine(renderer, 0, y, w, y);
-    SDL_RenderPresent(renderer);
 }
 
 //FUNCTION 2 - Start SDL2 with Proper Window Outline
@@ -144,8 +156,11 @@ int I_Handle(SDL_Event * event, thing * object)
                 M_Bind_Log(object, const_R);  // Right
                 return 13;
             case SDLK_u:
-                M_Bind_Redo(object);  // Redo
+            {
+                int last = M_Bind_Redo(object);  // Redo
+                if (!last){M_Thing_Redo(object, last);}
                 return 17;
+            }
             default:
                 return 0;
         }
@@ -163,7 +178,7 @@ static void M_Bind_Log(thing * object, const int key)
 static int M_Bind_Redo(thing * object)
 {
 	int buf = object->redo[0];
-	if( buf == -1 ) return -1;
+	if( buf == -1 ) return 0;
 	for ( int i = 0 ; i < count_R - 1 ; i++ )
 	{
 		object->redo[i] = object->redo[i+1];
@@ -199,7 +214,7 @@ static void D_Color(thing * object)
 }
 
 //FUNCTION 8 - Move Thing Without Collision Detection - Only For Test Purposes
-static void M_Thing(SDL_Renderer * renderer, thing * object, const int key)
+static void M_Thing(thing * object, const int key)
 {
 	switch (key)
 	{
@@ -207,5 +222,17 @@ static void M_Thing(SDL_Renderer * renderer, thing * object, const int key)
 		case const_D: object->pos[1] += speed_Y; break;
 		case const_L: object->pos[0] -= speed_X; break;
 		case const_R: object->pos[0] += speed_X; break; 
+	}
+}
+
+//FUNCTION 9 - Move Thing as Redo 
+static void M_Thing_Redo(thing * object, const int key)
+{
+	switch (key)
+	{
+		case const_U: object->pos[1] += speed_Y; break;
+		case const_D: object->pos[1] -= speed_Y; break;
+		case const_L: object->pos[0] += speed_X; break;
+		case const_R: object->pos[0] -= speed_X; break; 
 	}
 }
