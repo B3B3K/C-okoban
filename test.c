@@ -41,7 +41,7 @@ static void D_Grid (SDL_Renderer * renderer, int h, int w);               //Wind
 static void D_Thing(SDL_Renderer * renderer, int x, int y, thing object); //Window, Position X, Position Y, Object to Draw
 
 //FUNCTION's - Input
-int I_Handle(SDL_Event * event, movement * keyboard);             //Input, Write Key
+int I_Handle(SDL_Event * event, thing * object);           //Input, Write Key
 
 //FUNCTION's - Movement
 static int  M_Bind (const int key); //Mod Check Key
@@ -60,7 +60,6 @@ int S_SDL(sdl2 *a); //App
 int main(int argc, char * argv[]) //1.exe arg1, arg2 ... argn (n = argc, argn = argv[n])
 {   
     sdl2 sukuban = {NULL, NULL, 0};
-    movement keyboard;
 
     switch (S_SDL(&sukuban))
     {
@@ -77,7 +76,7 @@ int main(int argc, char * argv[]) //1.exe arg1, arg2 ... argn (n = argc, argn = 
 		.pos  = {140, 190},
 		.redo = {-1,-1,-1,-1,-1}
 	};
-    
+    D_Grid(sukuban.renderer, window_X, window_Y);
     while(sukuban.running)
     {
         while (SDL_PollEvent(&event))
@@ -85,9 +84,9 @@ int main(int argc, char * argv[]) //1.exe arg1, arg2 ... argn (n = argc, argn = 
 
         if ( event.type == SDL_QUIT ) sukuban.running = 0;
 
-        if (event.type == SDL_KEYDOWN && I_Handle(&event, &keyboard))
+        if (event.type == SDL_KEYDOWN && I_Handle(&event, &player))
         {
-			
+			;
 		}	
 
         }
@@ -99,10 +98,13 @@ int main(int argc, char * argv[]) //1.exe arg1, arg2 ... argn (n = argc, argn = 
 //FUNCTION 1 - Draw Grid
 static void D_Grid (SDL_Renderer * renderer, int h, int w)
 {
+	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	
     for(int x = 0; x < w; x += thing_S)
         SDL_RenderDrawLine(renderer, x, 0, x, h);
     for(int y = 0; y < h; y += thing_S)
         SDL_RenderDrawLine(renderer, 0, y, w, y);
+    SDL_RenderPresent(renderer);
 }
 
 //FUNCTION 2 - Start SDL2 with Proper Window Outline
@@ -149,12 +151,11 @@ int I_Handle(SDL_Event * event, thing * object)
 }
 
 //FUNCTION 4 - Log Last count_R Input for Redo Function
-int M_Bind_Log(thing * object, const int key)
+static void M_Bind_Log(thing * object, const int key)
 {
     for ( int i = count_R - 1 ; i > 0 ; i-- )
         object->redo[i] = object->redo[i - 1];
     object->redo[0] = key;
-    return 0;
 }
 
 //FUNCTION 5 - Redo Last count_R Movement
