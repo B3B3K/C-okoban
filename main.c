@@ -31,7 +31,7 @@ typedef struct
 {
     int     type;        //Player == +1; Box = 0; Bomb = -1;
     int  color[3];       //Block Color as R, G, B
-    int    pos[2];       //Block Position as X, Y
+    int    pos[3];       //Block Position as X, Y, V
     int   redo[count_R]; //Last Movements: Up=5, Left=7, Down=11, Right=13
 } thing;
 
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
     {
         .type  = 1,
         .color = {r_P, g_P, b_P},
-        .pos   = {80, 160},
+        .pos   = {80, 160, 1},
         .redo  = {-1,-1,-1,-1,-1}
     };
 
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 
     while (sukuban.running)
     {
-        //Input: only accept new move when not already moving
+        //Move While not Moving
         while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_QUIT) sukuban.running = 0;
@@ -236,7 +236,18 @@ static void D_Thing(SDL_Renderer *renderer, thing *object, sprite *spr)
     SDL_Rect rect = {object->pos[0], object->pos[1], thing_S, thing_S};
 
     if (spr && spr->frames[spr->current])
+    {
         SDL_RenderCopy(renderer, spr->frames[spr->current], NULL, &rect);
+        double angle = 0.0;
+        switch (object->pos[2])
+        {
+        case const_U: angle = 0.0; break;
+        case const_D: angle = 180.0; break;
+        case const_L: angle = 270.0; break;
+        case const_R: angle = 90.0; break;
+        }
+        SDL_RenderCopyEx(renderer, spr->frames[spr->current], NULL, &rect, angle, NULL, SDL_FLIP_NONE);
+    }
     else
     {
         SDL_SetRenderDrawColor(renderer, object->color[0], object->color[1], object->color[2], 255);
@@ -260,7 +271,7 @@ static void D_Color(thing *object)
     object->color[2] = b;
 }
 
-//FUNCTION 8 - Reverse Move 1px (Redo)
+//FUNCTION 8 - Redo
 static void M_Thing_Redo(thing *object, const int key)
 {
     switch (key)
@@ -289,15 +300,21 @@ int P_Wall(thing *object)
     return 0;
 }
 
-//FUNCTION 10 - Move Object 1px + Wall Check
+//FUNCTION 10 - Move Object With Wall Check
 static void M_Thing(thing *object, const int key)
 {
+    if (object->pos[0] % FRAME_STEP != 0 || object->pos[1] % FRAME_STEP != 0)
+    {
+        object->pos[0] = object->pos[0] - (object->pos[0] % FRAME_STEP);
+        object->pos[1] = object->pos[1] - (object->pos[1] % FRAME_STEP);
+    }
+
     switch (key)
     {
-        case const_U: object->pos[1] -= speed_Y; break;
-        case const_D: object->pos[1] += speed_Y; break;
-        case const_L: object->pos[0] -= speed_X; break;
-        case const_R: object->pos[0] += speed_X; break;
+        case const_U: object->pos[1] -= speed_Y; object->pos[2] = const_U; break;
+        case const_D: object->pos[1] += speed_Y; object->pos[2] = const_D; break;
+        case const_L: object->pos[0] -= speed_X; object->pos[2] = const_L; break;
+        case const_R: object->pos[0] += speed_X; object->pos[2] = const_R; break;
     }
     P_Wall(object);
 }
