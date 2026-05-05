@@ -52,7 +52,7 @@ static void M_Bind_Log (thing * object, const int key); //Object to Shift Left, 
 static void M_Thing_Redo(thing * object, const int key); //Object to Move, Read Key
 
 //FUNCTION's - Physics
-int P_Wall(thing object, const int go); //Object to Check, Axis
+int P_Wall(thing * object); 				//Object to Check
 int P_Coll(thing object, const int go); //Object to Check, Axis
 
 //FUNCTION's - Start
@@ -214,6 +214,9 @@ static void D_Color(thing * object)
 }
 
 //FUNCTION 8 - Move Thing Without Collision Detection - Only For Test Purposes
+// DEPRECATED
+
+/*
 static void M_Thing(thing * object, const int key)
 {
 	switch (key)
@@ -224,6 +227,7 @@ static void M_Thing(thing * object, const int key)
 		case const_R: object->pos[0] += speed_X; break; 
 	}
 }
+*/
 
 //FUNCTION 9 - Move Thing as Redo 
 static void M_Thing_Redo(thing * object, const int key)
@@ -235,4 +239,36 @@ static void M_Thing_Redo(thing * object, const int key)
 		case const_L: object->pos[0] += speed_X; break;
 		case const_R: object->pos[0] -= speed_X; break; 
 	}
+}
+
+//FUNCTION 10 - Object Wall Check
+int P_Wall(thing * object)
+{
+	if 
+	( 
+	object->pos[0] > window_X - thing_S || 
+	object->pos[0] < 0 + thing_S || 
+	object->pos[1] > window_Y - thing_S || 
+	object->pos[1] < 0 + thing_S ||
+	0
+	)
+	{
+		int last = M_Bind_Redo(object);  // Redo
+        if (last){M_Thing_Redo(object, last);}
+        return 1;
+	}
+	return 0;
+}
+
+//FUNCTION 11 - Move Thing With Wall Collision Detection
+static void M_Thing(thing * object, const int key)
+{
+	switch (key)
+	{
+		case const_U: object->pos[1] -= speed_Y; break;
+		case const_D: object->pos[1] += speed_Y; break;
+		case const_L: object->pos[0] -= speed_X; break;
+		case const_R: object->pos[0] += speed_X; break; 
+	}
+	P_Wall(object);
 }
