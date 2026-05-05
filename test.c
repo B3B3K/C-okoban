@@ -292,4 +292,3 @@ static unsigned int XOR_Random_Generator(int key_scancode)
     return state;
 }
 
-// --- TEST OK --- //

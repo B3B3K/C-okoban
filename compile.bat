@@ -1,1 +1,1 @@
-C:\msys64\mingw64\bin\gcc test.c -o 1.exe -IC:\msys64\mingw64\include\SDL2 -LC:\msys64\mingw64\lib -lmingw32 -lSDL2main -lSDL2 -mwindows -mconsole
+C:\msys64\mingw64\bin\gcc animation.c -o animation.exe -IC:\msys64\mingw64\include\SDL2 -LC:\msys64\mingw64\lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -mwindows -mconsole
