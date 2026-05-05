@@ -52,8 +52,9 @@ static void M_Bind_Log (thing * object, const int key); //Object to Shift Left, 
 static void M_Thing_Redo(thing * object, const int key); //Object to Move, Read Key
 
 //FUNCTION's - Physics
-int P_Wall(thing * object); 				//Object to Check
+int P_Wall(thing * object); 			//Object to Check
 int P_Coll(thing object, const int go); //Object to Check, Axis
+int P_Rand(int key); 					//Random Number 
 
 //FUNCTION's - Start
 int S_SDL(sdl2 *a); //App 
@@ -272,3 +273,23 @@ static void M_Thing(thing * object, const int key)
 	}
 	P_Wall(object);
 }
+
+//FUNCTION 12 - Random Number Machine 
+static unsigned int XOR_Random_Generator(int key_scancode)
+{
+    static unsigned int state = 0;
+    static int first_call = 1;
+    if (first_call)
+    {
+        state = (unsigned int)time(NULL);
+        first_call = 0;
+    }
+    state ^= (unsigned int)key_scancode;
+    state ^= state << 13;
+    state ^= state >> 17;
+    state ^= state << 5;
+    
+    return state;
+}
+
+// --- TEST OK --- //
