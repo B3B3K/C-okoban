@@ -32,7 +32,7 @@ typedef struct
 {
     int     type;        //Player == +1; Box = 0; Bomb = -1; Wall = -2;
     int  color[3];       //Block Color as R, G, B
-    int    pos[3];       //Block Position as X, Y, V
+    int    pos[3];       //Block Position as X, Y, D
     int   redo[count_R]; //Last Movements: Up=5, Left=7, Down=11, Right=13
 } thing;
 
@@ -64,6 +64,7 @@ thing wall = {.type = -2, .color = {255, 0, 0}, .pos = {0, 0, 0}, .redo = {-1,-1
 static void D_Grid  (SDL_Renderer *renderer, int w, int h);              //Renderer, Width, Height
 static void D_Thing (SDL_Renderer *renderer, thing *object, sprite *spr);//Renderer, Object, Sprite
 static void D_Color (thing *object);                                      //Object to Color
+void D_Static(SDL_Renderer *renderer, thing *object, SDL_Texture *texture); //Draw Static Elements With Sprite
 
 //FUNCTION's - Sprite
 int  SP_Load (sprite *spr, SDL_Renderer *renderer); //Sprite, Renderer -> load 1.png/2.png/3.png
@@ -87,6 +88,7 @@ static void M_Thing_Redo(thing *object, const int key);      //Object, Key -> re
 int P_Wall(thing *object);           //Object -> wall check, bounce back if hit
 int P_Coll(thing object, int go);    //Object, Axis -> collision check (reserved)
 int P_Rand(int key);                 //Key -> XOR random number
+void P_Map(int map, SDL_Renderer *renderer);
 
 //FUNCTION's - Start
 int S_SDL(sdl2 *a);                  //App -> init SDL2, window, renderer
@@ -142,7 +144,6 @@ int main(int argc, char *argv[])
                 I_Handle(&event, &player, &move);
         }
 
-        //Advance smooth motion one tick (1px)
         MO_Tick(&move, &player, &player_sprite);
 
         //Render
@@ -151,6 +152,7 @@ int main(int argc, char *argv[])
         if (sukuban.background) SDL_RenderCopy(sukuban.renderer, sukuban.background, NULL, NULL);
         D_Grid(sukuban.renderer, window_X, window_Y);
         D_Color(&player);
+        P_Map(0, sukuban.renderer);
         D_Thing(sukuban.renderer, &player, &player_sprite);
         SDL_RenderPresent(sukuban.renderer);
 
@@ -411,31 +413,46 @@ void MO_Tick(motion *mo, thing *object, sprite *spr)
 }
 
 //FUNCTION 17 - Map Place
-void P_Bomb(int map)
+//FUNCTION 17 - Map Place
+void P_Map(int map, SDL_Renderer *renderer)
 {
     static char filename[10];
-    static char map_str[76];
-    static SDL_Texture tree_texture = IMG_LoadTexture(sukuban.renderer, "A.png");;
-    static SDL_Texture bomb_texture= IMG_LoadTexture(sukuban.renderer, "Z.png");
-    static int count = 0;
-
+    static char map_str[256];
+    static SDL_Texture *tree_texture = NULL;
+    static SDL_Texture *bomb_texture = NULL;
+    int count = 0;
+    
+    if (tree_texture == NULL) {
+        tree_texture = IMG_LoadTexture(renderer, "A.png");
+        bomb_texture = IMG_LoadTexture(renderer, "Z.png");
+    }
+    
     sprintf(filename, "%d.txt", map);
     FILE *f = fopen(filename, "r");
-    if (!f) return 0; 
-    fread(map, 1, 76, f);
-    for(int x = 0; x < window_X / thing_S; x += thing_S)
+    if (!f) return;
+    
+    fread(map_str, 1, 255, f);
+    fclose(f);
+    
+    for(int y = 0; y < window_Y / thing_S; y++)
     {
-        for(int y = 0; y < window_Y / thing_S; y += thing_S)
+        for(int x = 0; x < window_X / thing_S; x++)
         {
-            if(map[count] == 'x')
-            D_Static(renderer, &wall, &tree_texture);
-            else if(map[count] == '!')
-            D_Static(renderer, &wall, &bomb_texture);
-
+            if(map_str[count] == 'x')
+            {
+                wall.pos[0] = x * thing_S;
+                wall.pos[1] = y * thing_S;
+                D_Static(renderer, &wall, tree_texture);
+            }
+            else if(map_str[count] == '!')
+            {
+                wall.pos[0] = x * thing_S;
+                wall.pos[1] = y * thing_S;
+                D_Static(renderer, &wall, bomb_texture);
+            }
             count++;
         }
     }
-    fclose(f);
 }
 
 //FUCNTION 18 - Static Drawings With Sprite
