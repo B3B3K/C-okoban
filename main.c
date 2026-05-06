@@ -6,8 +6,8 @@
 #include <time.h>
 
 //DEF's
-#define window_X    480 //Window X Axis Size 
-#define window_Y    600 //Window Y Axis Size
+#define window_X    960 //Window X Axis Size 
+#define window_Y    480 //Window Y Axis Size
 #define thing_S     80  //Player Size (Grid Cell)
 #define const_U     5   //integer  % const_U == 0
 #define const_L     7   //integer  % const_L == 0
@@ -39,6 +39,7 @@ typedef struct
 {
     SDL_Window   *window;
     SDL_Renderer *renderer;
+    SDL_Texture  *background;
     int running;
 } sdl2;
 
@@ -144,6 +145,7 @@ int main(int argc, char *argv[])
         //Render
         SDL_SetRenderDrawColor(sukuban.renderer, 0, 0, 0, 255);
         SDL_RenderClear(sukuban.renderer);
+        if (sukuban.background) SDL_RenderCopy(sukuban.renderer, sukuban.background, NULL, NULL);
         D_Grid(sukuban.renderer, window_X, window_Y);
         D_Color(&player);
         D_Thing(sukuban.renderer, &player, &player_sprite);
@@ -171,15 +173,17 @@ static void D_Grid(SDL_Renderer *renderer, int w, int h)
 int S_SDL(sdl2 *a)
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) return 1;
-
     a->window = SDL_CreateWindow("250229017",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         window_X, window_Y, SDL_WINDOW_SHOWN);
     if (!a->window) return 2;
-
     a->renderer = SDL_CreateRenderer(a->window, -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!a->renderer) return 3;
+    a->background = IMG_LoadTexture(a->renderer, "b.png");
+    if (!a->background) {
+        printf("\nError: %s", IMG_GetError());
+    }
 
     a->running = 1;
     return 0;
@@ -237,7 +241,7 @@ static void D_Thing(SDL_Renderer *renderer, thing *object, sprite *spr)
 
     if (spr && spr->frames[spr->current])
     {
-        SDL_RenderCopy(renderer, spr->frames[spr->current], NULL, &rect);
+        //SDL_RenderCopy(renderer, spr->frames[spr->current], NULL, &rect); BUG!!!
         double angle = 0.0;
         switch (object->pos[2])
         {
@@ -286,28 +290,18 @@ static void M_Thing_Redo(thing *object, const int key)
 //FUNCTION 9 - Wall Check
 int P_Wall(thing *object)
 {
-    if (
-        object->pos[0] > window_X - thing_S ||
-        object->pos[0] < 0                  ||
-        object->pos[1] > window_Y - thing_S ||
-        object->pos[1] < 0
-    )
-    {
-        int last = M_Bind_Redo(object);
-        if (last) M_Thing_Redo(object, last);
-        return 1;
-    }
+    if (object->pos[0] > window_X - thing_S) object->pos[0] = window_X - thing_S;
+    if (object->pos[0] < 0)                  object->pos[0] = 0;
+    if (object->pos[1] > window_Y - thing_S) object->pos[1] = window_Y - thing_S;
+    if (object->pos[1] < 0)                  object->pos[1] = 0;
+    
     return 0;
 }
 
 //FUNCTION 10 - Move Object With Wall Check
 static void M_Thing(thing *object, const int key)
 {
-    if (object->pos[0] % FRAME_STEP != 0 || object->pos[1] % FRAME_STEP != 0)
-    {
-        object->pos[0] = object->pos[0] - (object->pos[0] % FRAME_STEP);
-        object->pos[1] = object->pos[1] - (object->pos[1] % FRAME_STEP);
-    }
+    
 
     switch (key)
     {
@@ -403,6 +397,26 @@ void MO_Tick(motion *mo, thing *object, sprite *spr)
 
     mo->remaining--;
     if (mo->remaining <= 0)
+    {
         mo->active = 0;
+        if (object->pos[0] % FRAME_STEP != 0 || object->pos[1] % FRAME_STEP != 0)
+        {
+            object->pos[0] = object->pos[0] - (object->pos[0] % FRAME_STEP);
+            object->pos[1] = object->pos[1] - (object->pos[1] % FRAME_STEP);
+        }
+    }
 }
 
+//FUNCTION 17 - Bomb Place
+void P_Bomb()
+{
+    FILE *f = fopen("bombs.txt", "r");
+    for(int x = 0; x < window_X; x += thing_S)
+    {
+        for(int y = 0; y < window_Y; y += thing_S)
+        {
+            ;
+        }
+    }
+    fclose(f);
+}
