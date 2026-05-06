@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 //DEF's
 #define window_X    960 //Window X Axis Size 
@@ -29,7 +30,7 @@
 //STRUCT's
 typedef struct
 {
-    int     type;        //Player == +1; Box = 0; Bomb = -1;
+    int     type;        //Player == +1; Box = 0; Bomb = -1; Wall = -2;
     int  color[3];       //Block Color as R, G, B
     int    pos[3];       //Block Position as X, Y, V
     int   redo[count_R]; //Last Movements: Up=5, Left=7, Down=11, Right=13
@@ -56,6 +57,8 @@ typedef struct
     int dir;       //Direction key (const_U/L/D/R), +100 offset for redo
     int remaining; //Remaining pixels to move this step
 } motion;
+
+thing wall = {.type = -2, .color = {255, 0, 0}, .pos = {0, 0, 0}, .redo = {-1,-1,-1,-1,-1}};
 
 //FUNCTION's - Draw
 static void D_Grid  (SDL_Renderer *renderer, int w, int h);              //Renderer, Width, Height
@@ -407,16 +410,37 @@ void MO_Tick(motion *mo, thing *object, sprite *spr)
     }
 }
 
-//FUNCTION 17 - Bomb Place
-void P_Bomb()
+//FUNCTION 17 - Map Place
+void P_Bomb(int map)
 {
-    FILE *f = fopen("bombs.txt", "r");
-    for(int x = 0; x < window_X; x += thing_S)
+    static char filename[10];
+    static char map_str[76];
+    static SDL_Texture tree_texture = IMG_LoadTexture(sukuban.renderer, "A.png");;
+    static SDL_Texture bomb_texture= IMG_LoadTexture(sukuban.renderer, "Z.png");
+    static int count = 0;
+
+    sprintf(filename, "%d.txt", map);
+    FILE *f = fopen(filename, "r");
+    if (!f) return 0; 
+    fread(map, 1, 76, f);
+    for(int x = 0; x < window_X / thing_S; x += thing_S)
     {
-        for(int y = 0; y < window_Y; y += thing_S)
+        for(int y = 0; y < window_Y / thing_S; y += thing_S)
         {
-            ;
+            if(map[count] == 'x')
+            D_Static(renderer, &wall, &tree_texture);
+            else if(map[count] == '!')
+            D_Static(renderer, &wall, &bomb_texture);
+
+            count++;
         }
     }
     fclose(f);
+}
+
+//FUCNTION 18 - Static Drawings With Sprite
+void D_Static(SDL_Renderer *renderer, thing *object, SDL_Texture *texture)
+{
+    SDL_Rect rect = {object->pos[0], object->pos[1], thing_S, thing_S};
+    SDL_RenderCopy(renderer, texture, NULL, &rect);
 }
