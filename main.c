@@ -88,9 +88,9 @@ static void M_Bind_Log  (thing *object, const int key);      //Object, Key -> pu
 static void M_Thing_Redo(thing *object, const int key);      //Object, Key -> reverse move 1px
 
 //FUNCTION's - Physics
-int P_Wall(thing *object);           //Object -> wall check, bounce back if hit
-int P_Coll(thing object, int go);    //Object, Axis -> collision check
-int P_Rand(int key);                 //Key -> XOR random number
+int P_Wall(thing *object);                                  //Object -> wall check, bounce back if hit
+int P_Coll(thing object, int go, SDL_Renderer *renderer);   //Object, Axis, Renderer -> collision check via pixel
+int P_Rand(int key);                                        //Key -> XOR random number
 void P_Map(int map, SDL_Renderer *renderer);
 
 //FUNCTION's - Start
@@ -470,7 +470,7 @@ void D_Static(SDL_Renderer *renderer, thing *object, SDL_Texture *texture)
 }
 
 //FUNCTION 19 - Wall Detection Via Pixels
-int P_Coll(thing object, int go)
+int P_Coll(thing object, int go, SDL_Renderer *renderer)
 {
     int target_x = object.pos[0];
     int target_y = object.pos[1];
