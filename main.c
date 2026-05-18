@@ -30,6 +30,15 @@
 //STRUCT's
 typedef struct
 {
+    int x;
+    int y;
+    int type;
+} statics;
+statics static_map[200]; // Maksimum 200 wall
+int wall_count = 0;
+
+typedef struct
+{
     int     type;        //Player == +1; Box = 0; Bomb = -1; Wall = -2;
     int  color[3];       //Block Color as R, G, B
     int    pos[3];       //Block Position as X, Y, D
@@ -212,7 +221,7 @@ int I_Handle(SDL_Event *event, thing *object, motion *mo)
         }
         default: return 0;
     }
-    if (key)
+    if (key && !P_Coll(* object, key)) 
     {
         M_Bind_Log(object, key);
         MO_Start(mo, key);
@@ -315,7 +324,6 @@ static void M_Thing(thing *object, const int key)
         case const_L: object->pos[0] -= speed_X; object->pos[2] = const_L; break;
         case const_R: object->pos[0] += speed_X; object->pos[2] = const_R; break;
     }
-    P_Wall(object);
 }
 
 //FUNCTION 11 - XOR Random Number Generator
@@ -404,54 +412,67 @@ void MO_Tick(motion *mo, thing *object, sprite *spr)
     if (mo->remaining <= 0)
     {
         mo->active = 0;
-        if (object->pos[0] % FRAME_STEP != 0 || object->pos[1] % FRAME_STEP != 0)
-        {
-            object->pos[0] = object->pos[0] - (object->pos[0] % FRAME_STEP);
-            object->pos[1] = object->pos[1] - (object->pos[1] % FRAME_STEP);
-        }
+        object->pos[0] = (object->pos[0] / thing_S) * thing_S;
+        object->pos[1] = (object->pos[1] / thing_S) * thing_S;
     }
 }
 
 //FUNCTION 17 - Map Place
-//FUNCTION 17 - Map Place
 void P_Map(int map, SDL_Renderer *renderer)
 {
-    static char filename[10];
-    static char map_str[256];
+    static char filename[20];
+    static char ch;
     static SDL_Texture *tree_texture = NULL;
     static SDL_Texture *bomb_texture = NULL;
-    int count = 0;
+    static int loaded_map = -1;
     
     if (tree_texture == NULL) {
         tree_texture = IMG_LoadTexture(renderer, "A.png");
         bomb_texture = IMG_LoadTexture(renderer, "Z.png");
-    }
-    
-    sprintf(filename, "%d.txt", map);
-    FILE *f = fopen(filename, "r");
-    if (!f) return;
-    
-    fread(map_str, 1, 255, f);
-    fclose(f);
-    
-    for(int y = 0; y < window_Y / thing_S; y++)
-    {
-        for(int x = 0; x < window_X / thing_S; x++)
-        {
-            if(map_str[count] == 'x')
-            {
-                wall.pos[0] = x * thing_S;
-                wall.pos[1] = y * thing_S;
-                D_Static(renderer, &wall, tree_texture);
-            }
-            else if(map_str[count] == '!')
-            {
-                wall.pos[0] = x * thing_S;
-                wall.pos[1] = y * thing_S;
-                D_Static(renderer, &wall, bomb_texture);
-            }
-            count++;
+        if (!tree_texture || !bomb_texture) {
+            printf("\nTexture loading failed: %s", IMG_GetError());
+            return;
         }
+    }
+
+    if (loaded_map != map)
+    {
+        wall_count = 0;
+        loaded_map = map;
+
+        sprintf(filename, "%d.txt", map);
+        FILE *f = fopen(filename, "r");
+        if (!f) {
+            printf("\nCannot open file: %s", filename);
+            return;
+        }
+        
+        int x = 0, y = 0;
+        while ((ch = fgetc(f)) != EOF && y < (window_Y / thing_S))
+        {
+            if (ch == 'x' || ch == '!')
+            {
+                static_map[wall_count].x = x * thing_S;
+                static_map[wall_count].y = y * thing_S;
+                static_map[wall_count].type = ch;
+                wall_count++;
+            }
+            else if (ch == '\n')
+            {
+                y++;
+                x = 0;
+                continue;
+            }
+            x++;
+        }
+        fclose(f);
+    }
+
+    for (int i = 0; i < wall_count; i++)
+    {
+        SDL_Rect rect = {static_map[i].x, static_map[i].y, thing_S, thing_S};
+        SDL_Texture *tex = (static_map[i].type == 'x') ? tree_texture : bomb_texture;
+        SDL_RenderCopy(renderer, tex, NULL, &rect);
     }
 }
 
@@ -460,4 +481,27 @@ void D_Static(SDL_Renderer *renderer, thing *object, SDL_Texture *texture)
 {
     SDL_Rect rect = {object->pos[0], object->pos[1], thing_S, thing_S};
     SDL_RenderCopy(renderer, texture, NULL, &rect);
+}
+
+//FUNCTION 19 - Collision Check from array
+int P_Coll(thing object, int dir)
+{
+    int nx = object.pos[0];
+    int ny = object.pos[1];
+
+    switch (dir)
+    {
+        case const_U: ny -= thing_S; break;
+        case const_D: ny += thing_S; break;
+        case const_L: nx -= thing_S; break;
+        case const_R: nx += thing_S; break;
+        default: return 0;
+    }
+
+    for (int i = 0; i < wall_count; i++)
+    {
+        if (nx == static_map[i].x && ny == static_map[i].y)
+            return 1;
+    }
+    return 0;
 }
