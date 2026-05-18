@@ -27,9 +27,6 @@
 #define MOVE_STEPS      80  //Total pixels per one grid move (4 frames x 20px)
 #define SPRITE_SIZE     16  //Frame Size (original PNG)
 
-int global_wall_count = 0; //Global Wall Count for Collision
-int global_bomb_count = 0; //Global Bomb Count for Collision
-
 //STRUCT's
 typedef struct
 {
@@ -88,9 +85,9 @@ static void M_Bind_Log  (thing *object, const int key);      //Object, Key -> pu
 static void M_Thing_Redo(thing *object, const int key);      //Object, Key -> reverse move 1px
 
 //FUNCTION's - Physics
-int P_Wall(thing *object);                                  //Object -> wall check, bounce back if hit
-int P_Coll(thing object, int go, SDL_Renderer *renderer);   //Object, Axis, Renderer -> collision check via pixel
-int P_Rand(int key);                                        //Key -> XOR random number
+int P_Wall(thing *object);           //Object -> wall check, bounce back if hit
+int P_Coll(thing object, int go);    //Object, Axis -> collision check (reserved)
+int P_Rand(int key);                 //Key -> XOR random number
 void P_Map(int map, SDL_Renderer *renderer);
 
 //FUNCTION's - Start
@@ -416,11 +413,9 @@ void MO_Tick(motion *mo, thing *object, sprite *spr)
 }
 
 //FUNCTION 17 - Map Place
+//FUNCTION 17 - Map Place
 void P_Map(int map, SDL_Renderer *renderer)
 {
-    global_bomb_count = 0;
-    global_wall_count = 0;
-
     static char filename[10];
     static char map_str[256];
     static SDL_Texture *tree_texture = NULL;
@@ -448,14 +443,12 @@ void P_Map(int map, SDL_Renderer *renderer)
                 wall.pos[0] = x * thing_S;
                 wall.pos[1] = y * thing_S;
                 D_Static(renderer, &wall, tree_texture);
-                global_wall_count ++;
             }
             else if(map_str[count] == '!')
             {
                 wall.pos[0] = x * thing_S;
                 wall.pos[1] = y * thing_S;
                 D_Static(renderer, &wall, bomb_texture);
-                global_bomb_count ++;
             }
             count++;
         }
@@ -467,44 +460,4 @@ void D_Static(SDL_Renderer *renderer, thing *object, SDL_Texture *texture)
 {
     SDL_Rect rect = {object->pos[0], object->pos[1], thing_S, thing_S};
     SDL_RenderCopy(renderer, texture, NULL, &rect);
-}
-
-//FUNCTION 19 - Wall Detection Via Pixels
-int P_Coll(thing object, int go, SDL_Renderer *renderer)
-{
-    int target_x = object.pos[0];
-    int target_y = object.pos[1];
-
-    switch (go)
-    {
-        case const_U: target_y -= thing_S; break;
-        case const_D: target_y += thing_S; break;
-        case const_L: target_x -= thing_S; break;
-        case const_R: target_x += thing_S; break;
-    }
-    if (target_x < 0         || 
-        target_x >= window_X ||
-        target_y < 0         || 
-        target_y >= window_Y  )
-        return 0; 
-    
-    int sample_x = target_x;
-    int sample_y = target_y + 6;
-
-    SDL_Rect sample_rect = { sample_x, sample_y, 1, 1 };
-    Uint32 pixel = 0;
-    SDL_RenderReadPixels(renderer, &sample_rect,
-                         SDL_PIXELFORMAT_ARGB8888,
-                         &pixel, sizeof(Uint32));
-    
-    Uint8 r = (pixel >> 16) & 0xFF;
-    Uint8 g = (pixel >>  8) & 0xFF;
-    Uint8 b = (pixel      ) & 0xFF;
-    
-    if (r == 181 && g == 230 && b == 29) //Tree Sprite's (0,6) pixel is #B5E61D
-    return 0;
-
-    return 1;
-
-    
 }
