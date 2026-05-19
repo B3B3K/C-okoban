@@ -86,7 +86,7 @@ void MO_Start(motion *mo, int dir);                          //Motion, Direction
 void MO_Tick (motion *mo, thing *object, sprite *spr);       //Motion, Object, Sprite -> advance one tick
 
 //FUNCTION's - Input
-int  I_Handle(SDL_Event *event, thing *object, motion *mo);  //Event, Object, Motion -> return key
+int  I_Handle(SDL_Event *event, thing *object, motion *mo, thing *boxes);  //Event, Object, Motion -> return key
 
 //FUNCTION's - Movement
 static void M_Thing     (thing *object, const int key);      //Object, Key -> move 1px + wall check
@@ -142,31 +142,35 @@ int main(int argc, char *argv[])
     };
 
     motion move = {0, 0, 0};
+    thing *boxes = NULL;
 
     while (sukuban.running)
     {
-        //Move While not Moving
         while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_QUIT) sukuban.running = 0;
 
             if (event.type == SDL_KEYDOWN && !move.active)
-                I_Handle(&event, &player, &move);
+                I_Handle(&event, &player, &move, boxes);
         }
 
         MO_Tick(&move, &player, &player_sprite);
 
-        //Render
         SDL_SetRenderDrawColor(sukuban.renderer, 0, 0, 0, 255);
         SDL_RenderClear(sukuban.renderer);
         if (sukuban.background) SDL_RenderCopy(sukuban.renderer, sukuban.background, NULL, NULL);
         D_Grid(sukuban.renderer, window_X, window_Y);
         D_Color(&player);
-        P_Map(0, sukuban.renderer);
+        boxes = P_Map(0, sukuban.renderer);
+        for (int i = 0; i < box_count; i++)
+        {
+            D_Color(&boxes[i]);
+            D_Thing(sukuban.renderer, &boxes[i], NULL);
+        }
         D_Thing(sukuban.renderer, &player, &player_sprite);
         SDL_RenderPresent(sukuban.renderer);
 
-        SDL_Delay(16); //~60fps
+        SDL_Delay(16);
     }
 
     SP_Free(&player_sprite);
@@ -205,7 +209,7 @@ int S_SDL(sdl2 *a)
 }
 
 //FUNCTION 3 - Input Handler
-int I_Handle(SDL_Event *event, thing *object, motion *mo)
+int I_Handle(SDL_Event *event, thing *object, motion *mo, thing *boxes)
 {
     int key = 0;
     switch (event->key.keysym.sym)
@@ -222,7 +226,7 @@ int I_Handle(SDL_Event *event, thing *object, motion *mo)
         }
         default: return 0;
     }
-    if (key && !P_Coll(* object, key)) 
+    if (key && !P_Coll(*object, key, boxes)) 
     {
         M_Bind_Log(object, key);
         MO_Start(mo, key);
@@ -449,7 +453,7 @@ thing* P_Map(int map, SDL_Renderer *renderer)
             return NULL;
         }
         
-        char ch;
+        int ch;
         while ((ch = fgetc(f)) != EOF)
             if (ch == 'o') box_count++;
         rewind(f);
