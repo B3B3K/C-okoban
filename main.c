@@ -35,7 +35,7 @@ typedef struct
     int type;
 } statics;
 statics static_map[200]; // Maksimum 200 wall
-int wall_count = 0;
+int wall_count = 0; int box_count = 0;
 
 typedef struct
 {
@@ -69,6 +69,7 @@ typedef struct
 
 thing wall = {.type = -2, .color = {255, 0, 0}, .pos = {0, 0, 0}, .redo = {-1,-1,-1,-1,-1}};
 
+
 //FUNCTION's - Draw
 static void D_Grid  (SDL_Renderer *renderer, int w, int h);              //Renderer, Width, Height
 static void D_Thing (SDL_Renderer *renderer, thing *object, sprite *spr);//Renderer, Object, Sprite
@@ -95,9 +96,9 @@ static void M_Thing_Redo(thing *object, const int key);      //Object, Key -> re
 
 //FUNCTION's - Physics
 int P_Wall(thing *object);           //Object -> wall check, bounce back if hit
-int P_Coll(thing object, int go);    //Object, Axis -> collision check (reserved)
+int P_Coll(thing object, int dir, thing *box); //Object, Axis, Box -> collision check (reserved)
 int P_Rand(int key);                 //Key -> XOR random number
-void P_Map(int map, SDL_Renderer *renderer);
+thing* P_Map(int map, SDL_Renderer *renderer); //Box Collector
 
 //FUNCTION's - Start
 int S_SDL(sdl2 *a);                  //App -> init SDL2, window, renderer
@@ -418,53 +419,65 @@ void MO_Tick(motion *mo, thing *object, sprite *spr)
 }
 
 //FUNCTION 17 - Map Place
-void P_Map(int map, SDL_Renderer *renderer)
+thing* P_Map(int map, SDL_Renderer *renderer)
 {
     static char filename[20];
-    static char ch;
     static SDL_Texture *tree_texture = NULL;
     static SDL_Texture *bomb_texture = NULL;
-    static SDL_Texture *box_texture  = NULL;
     static int loaded_map = -1;
-    
+    static thing *boxes = NULL;
+
     if (tree_texture == NULL) {
         tree_texture = IMG_LoadTexture(renderer, "A.png");
         bomb_texture = IMG_LoadTexture(renderer, "Z.png");
-        box_texture  = IMG_LoadTexture(renderer, "k.png");
-        if (!tree_texture || !bomb_texture || !box_texture) {
+        if (!tree_texture || !bomb_texture) {
             printf("\nTexture loading failed: %s", IMG_GetError());
-            return;
+            return NULL;
         }
     }
 
     if (loaded_map != map)
     {
         wall_count = 0;
+        box_count  = 0;
         loaded_map = map;
 
         sprintf(filename, "%d.txt", map);
         FILE *f = fopen(filename, "r");
         if (!f) {
             printf("\nCannot open file: %s", filename);
-            return;
+            return NULL;
         }
         
-        int x = 0, y = 0;
+        char ch;
+        while ((ch = fgetc(f)) != EOF)
+            if (ch == 'o') box_count++;
+        rewind(f);
+        
+        if (boxes) free(boxes);
+        boxes = malloc(box_count * sizeof(thing));
+        if (!boxes) { fclose(f); return NULL; }
+
+        int x = 0, y = 0, box_index = 0;
         while ((ch = fgetc(f)) != EOF && y < (window_Y / thing_S))
         {
-            if (ch == 'x' || ch == '!' || ch == 'o')
+            if (ch == 'x' || ch == '!')
             {
-                static_map[wall_count].x = x * thing_S;
-                static_map[wall_count].y = y * thing_S;
+                static_map[wall_count].x    = x * thing_S;
+                static_map[wall_count].y    = y * thing_S;
                 static_map[wall_count].type = ch;
                 wall_count++;
             }
-            else if (ch == '\n')
+            else if (ch == 'o')
             {
-                y++;
-                x = 0;
-                continue;
+                boxes[box_index].type   = 0;
+                boxes[box_index].pos[0] = x * thing_S;
+                boxes[box_index].pos[1] = y * thing_S;
+                boxes[box_index].pos[2] = 1;
+                for (int i = 0; i < count_R; i++) boxes[box_index].redo[i] = -1;
+                box_index++;
             }
+            else if (ch == '\n') { y++; x = 0; continue; }
             x++;
         }
         fclose(f);
@@ -473,12 +486,11 @@ void P_Map(int map, SDL_Renderer *renderer)
     for (int i = 0; i < wall_count; i++)
     {
         SDL_Rect rect = {static_map[i].x, static_map[i].y, thing_S, thing_S};
-        SDL_Texture *tex;
-        if      (static_map[i].type == 'x') tex = tree_texture;
-        else if (static_map[i].type == 'o') tex = box_texture;
-        else                                tex = bomb_texture;
+        SDL_Texture *tex = (static_map[i].type == 'x') ? tree_texture : bomb_texture;
         SDL_RenderCopy(renderer, tex, NULL, &rect);
     }
+
+    return boxes;
 }
 
 //FUCNTION 18 - Static Drawings With Sprite
@@ -488,8 +500,8 @@ void D_Static(SDL_Renderer *renderer, thing *object, SDL_Texture *texture)
     SDL_RenderCopy(renderer, texture, NULL, &rect);
 }
 
-//FUNCTION 19 - Collision Check from array (with box push)
-int P_Coll(thing object, int dir)
+//FUNCTION 19 - Collision Check from array
+int P_Coll(thing object, int dir, thing *box)
 {
     int nx = object.pos[0];
     int ny = object.pos[1];
@@ -504,36 +516,14 @@ int P_Coll(thing object, int dir)
     }
 
     for (int i = 0; i < wall_count; i++)
-    {
         if (nx == static_map[i].x && ny == static_map[i].y)
-        {
-            // Wall or bomb: block movement
-            if (static_map[i].type != 'o') return 1;
+            return 1;
 
-            // Box found: check cell behind the box
-            int bx = nx, by = ny;
-            switch (dir)
-            {
-                case const_U: by -= thing_S; break;
-                case const_D: by += thing_S; break;
-                case const_L: bx -= thing_S; break;
-                case const_R: bx += thing_S; break;
-            }
+    for (int i = 0; i < box_count; i++)
+        if (box[i].pos[0] == nx && box[i].pos[1] == ny)
+            return 1;
 
-            // Out of bounds check
-            if (bx < 0 || bx > window_X - thing_S || by < 0 || by > window_Y - thing_S)
-                return 1;
-
-            // Check if cell behind box is occupied
-            for (int j = 0; j < wall_count; j++)
-                if (bx == static_map[j].x && by == static_map[j].y)
-                    return 1;
-
-            // Push the box
-            static_map[i].x = bx;
-            static_map[i].y = by;
-            return 0;
-        }
-    }
     return 0;
 }
+
+//FUNCTION 20 - Push Box Check
