@@ -424,12 +424,14 @@ void P_Map(int map, SDL_Renderer *renderer)
     static char ch;
     static SDL_Texture *tree_texture = NULL;
     static SDL_Texture *bomb_texture = NULL;
+    static SDL_Texture *box_texture  = NULL;
     static int loaded_map = -1;
     
     if (tree_texture == NULL) {
         tree_texture = IMG_LoadTexture(renderer, "A.png");
         bomb_texture = IMG_LoadTexture(renderer, "Z.png");
-        if (!tree_texture || !bomb_texture) {
+        box_texture  = IMG_LoadTexture(renderer, "k.png");
+        if (!tree_texture || !bomb_texture || !box_texture) {
             printf("\nTexture loading failed: %s", IMG_GetError());
             return;
         }
@@ -450,7 +452,7 @@ void P_Map(int map, SDL_Renderer *renderer)
         int x = 0, y = 0;
         while ((ch = fgetc(f)) != EOF && y < (window_Y / thing_S))
         {
-            if (ch == 'x' || ch == '!')
+            if (ch == 'x' || ch == '!' || ch == 'o')
             {
                 static_map[wall_count].x = x * thing_S;
                 static_map[wall_count].y = y * thing_S;
@@ -471,7 +473,10 @@ void P_Map(int map, SDL_Renderer *renderer)
     for (int i = 0; i < wall_count; i++)
     {
         SDL_Rect rect = {static_map[i].x, static_map[i].y, thing_S, thing_S};
-        SDL_Texture *tex = (static_map[i].type == 'x') ? tree_texture : bomb_texture;
+        SDL_Texture *tex;
+        if      (static_map[i].type == 'x') tex = tree_texture;
+        else if (static_map[i].type == 'o') tex = box_texture;
+        else                                tex = bomb_texture;
         SDL_RenderCopy(renderer, tex, NULL, &rect);
     }
 }
@@ -483,7 +488,7 @@ void D_Static(SDL_Renderer *renderer, thing *object, SDL_Texture *texture)
     SDL_RenderCopy(renderer, texture, NULL, &rect);
 }
 
-//FUNCTION 19 - Collision Check from array
+//FUNCTION 19 - Collision Check from array (with box push)
 int P_Coll(thing object, int dir)
 {
     int nx = object.pos[0];
@@ -501,7 +506,34 @@ int P_Coll(thing object, int dir)
     for (int i = 0; i < wall_count; i++)
     {
         if (nx == static_map[i].x && ny == static_map[i].y)
-            return 1;
+        {
+            // Wall or bomb: block movement
+            if (static_map[i].type != 'o') return 1;
+
+            // Box found: check cell behind the box
+            int bx = nx, by = ny;
+            switch (dir)
+            {
+                case const_U: by -= thing_S; break;
+                case const_D: by += thing_S; break;
+                case const_L: bx -= thing_S; break;
+                case const_R: bx += thing_S; break;
+            }
+
+            // Out of bounds check
+            if (bx < 0 || bx > window_X - thing_S || by < 0 || by > window_Y - thing_S)
+                return 1;
+
+            // Check if cell behind box is occupied
+            for (int j = 0; j < wall_count; j++)
+                if (bx == static_map[j].x && by == static_map[j].y)
+                    return 1;
+
+            // Push the box
+            static_map[i].x = bx;
+            static_map[i].y = by;
+            return 0;
+        }
     }
     return 0;
 }
