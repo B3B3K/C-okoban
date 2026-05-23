@@ -537,10 +537,22 @@ int P_Coll(thing object, int dir, thing *box)
             return 1;
 
     for (int i = 0; i < box_count; i++)
-        if (box[i].pos[0] == nx && box[i].pos[1] == ny)
+    if (box[i].pos[0] == nx && box[i].pos[1] == ny)
+    {
+        if (P_Coll(box[i], dir, box))
             return 1;
-
+            
+        switch (dir)
+        {
+            case const_U: box[i].pos[1] -= thing_S; break;
+            case const_D: box[i].pos[1] += thing_S; break;
+            case const_L: box[i].pos[0] -= thing_S; break;
+            case const_R: box[i].pos[0] += thing_S; break;
+        }
+        return 0;
+    }
     return 0;
 }
 
 //FUNCTION 20 - Push Box Check
+
