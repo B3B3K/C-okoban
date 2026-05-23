@@ -77,7 +77,7 @@ static void D_Color (thing *object);                                      //Obje
 void D_Static(SDL_Renderer *renderer, thing *object, SDL_Texture *texture); //Draw Static Elements With Sprite
 
 //FUNCTION's - Sprite
-int  SP_Load (sprite *spr, SDL_Renderer *renderer); //Sprite, Renderer -> load 1.png/2.png/3.png
+int  SP_Load (sprite *spr, SDL_Renderer *renderer, int type); //Sprite, Renderer -> load 1.png/2.png/3.png & box
 void SP_Step (sprite *spr, int pixels);             //Sprite, Pixels moved -> advance frame if needed
 void SP_Free (sprite *spr);                         //Sprite -> free textures
 
@@ -123,7 +123,14 @@ int main(int argc, char *argv[])
     }
 
     sprite player_sprite;
-    if (!SP_Load(&player_sprite, sukuban.renderer))
+    sprite box_sprite;
+    if (!SP_Load(&player_sprite, sukuban.renderer, 1))
+    {
+        printf("\nSprite yuklenemedi!");
+        IMG_Quit();
+        return 0;
+    }
+    if (!SP_Load(&box_sprite, sukuban.renderer, 0))
     {
         printf("\nSprite yuklenemedi!");
         IMG_Quit();
@@ -164,8 +171,7 @@ int main(int argc, char *argv[])
         boxes = P_Map(0, sukuban.renderer);
         for (int i = 0; i < box_count; i++)
         {
-            D_Color(&boxes[i]);
-            D_Thing(sukuban.renderer, &boxes[i], NULL);
+            D_Thing(sukuban.renderer, &boxes[i], &box_sprite);
         }
         D_Thing(sukuban.renderer, &player, &player_sprite);
         SDL_RenderPresent(sukuban.renderer);
@@ -174,6 +180,7 @@ int main(int argc, char *argv[])
     }
 
     SP_Free(&player_sprite);
+    SP_Free(&box_sprite);
     IMG_Quit();
     return 0;
 }
@@ -345,9 +352,15 @@ static unsigned int XOR_Random_Generator(int key_scancode)
 }
 
 //FUNCTION 12 - Load Sprite Frames
-int SP_Load(sprite *spr, SDL_Renderer *renderer)
+int SP_Load(sprite *spr, SDL_Renderer *renderer, int type)
 {
-    const char *files[FRAME_COUNT] = {"1.png", "2.png", "1.png", "3.png"};
+    const char *files[FRAME_COUNT];
+
+    const char *p_files[FRAME_COUNT] = {"1.png", "2.png", "1.png", "3.png"};
+    const char *b_files[FRAME_COUNT] = {"k.png", "k.png", "k.png", "k.png"};
+
+    memcpy(files, (type == 1) ? p_files : b_files, sizeof(files));
+
     spr->current    = 0;
     spr->move_accum = 0;
 
