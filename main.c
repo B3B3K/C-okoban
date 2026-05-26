@@ -83,7 +83,7 @@ void SP_Free (sprite *spr);                         //Sprite -> free textures
 
 //FUNCTION's - Motion
 void MO_Start(motion *mo, int dir);                          //Motion, Direction -> begin smooth move
-void MO_Tick (motion *mo, thing *object, sprite *spr);       //Motion, Object, Sprite -> advance one tick
+void MO_Tick (motion *mo, thing *object, sprite *spr, thing *boxes); //Motion, Object, Sprite, Boxes -> advance one tick
 
 //FUNCTION's - Input
 int  I_Handle(SDL_Event *event, thing *object, motion *mo, thing *boxes);  //Event, Object, Motion -> return key
@@ -99,6 +99,7 @@ int P_Wall(thing *object);           //Object -> wall check, bounce back if hit
 int P_Coll(thing object, int dir, thing *box); //Object, Axis, Box -> collision check (reserved)
 int P_Rand(int key);                 //Key -> XOR random number
 thing* P_Map(int map, SDL_Renderer *renderer); //Box Collector
+int P_Check_Win(thing *boxes);       //Boxes -> Check if all bombs are covered
 
 //FUNCTION's - Start
 int S_SDL(sdl2 *a);                  //App -> init SDL2, window, renderer
@@ -151,6 +152,8 @@ int main(int argc, char *argv[])
     motion move = {0, 0, 0};
     thing *boxes = NULL;
 
+    int current_map = 0;
+
     while (sukuban.running)
     {
         while (SDL_PollEvent(&event))
@@ -161,20 +164,27 @@ int main(int argc, char *argv[])
                 I_Handle(&event, &player, &move, boxes);
         }
 
-        MO_Tick(&move, &player, &player_sprite);
+        MO_Tick(&move, &player, &player_sprite, boxes);
 
         SDL_SetRenderDrawColor(sukuban.renderer, 0, 0, 0, 255);
         SDL_RenderClear(sukuban.renderer);
         if (sukuban.background) SDL_RenderCopy(sukuban.renderer, sukuban.background, NULL, NULL);
         D_Grid(sukuban.renderer, window_X, window_Y);
         D_Color(&player);
-        boxes = P_Map(0, sukuban.renderer);
+        boxes = P_Map(current_map, sukuban.renderer);
         for (int i = 0; i < box_count; i++)
         {
             D_Thing(sukuban.renderer, &boxes[i], &box_sprite);
         }
         D_Thing(sukuban.renderer, &player, &player_sprite);
         SDL_RenderPresent(sukuban.renderer);
+
+        if (!move.active && P_Check_Win(boxes))
+        {
+            printf("\nHarita %d tamamlandi! Yeni haritaya geciliyor...", current_map);
+            current_map++;
+            for (int i = 0; i < count_R; i++) player.redo[i] = -1; 
+        }
 
         SDL_Delay(16);
     }
@@ -230,20 +240,6 @@ int I_Handle(SDL_Event *event, thing *object, motion *mo, thing *boxes)
             int last = M_Bind_Redo(object);
             if (last)
             {
-                for (int i = 0; i < box_count; i++)
-                {
-                    int box_last = M_Bind_Redo(&boxes[i]);
-                    if (box_last)
-                    {
-                        switch (box_last)
-                        {
-                            case const_U: boxes[i].pos[1] += thing_S; break;
-                            case const_D: boxes[i].pos[1] -= thing_S; break;
-                            case const_L: boxes[i].pos[0] += thing_S; break;
-                            case const_R: boxes[i].pos[0] -= thing_S; break;
-                        }
-                    }
-                }
                 MO_Start(mo, last + 100);
             }
             return const_K;
@@ -438,7 +434,7 @@ void MO_Start(motion *mo, int dir)
 }
 
 //FUNCTION 16 - Butter Movement Main Loop
-void MO_Tick(motion *mo, thing *object, sprite *spr)
+void MO_Tick(motion *mo, thing *object, sprite *spr, thing *boxes)
 {
     if (!mo->active) return;
 
@@ -458,6 +454,24 @@ void MO_Tick(motion *mo, thing *object, sprite *spr)
         mo->active = 0;
         object->pos[0] = (object->pos[0] / thing_S) * thing_S;
         object->pos[1] = (object->pos[1] / thing_S) * thing_S;
+
+        if (is_redo && boxes)
+        {
+            for (int i = 0; i < box_count; i++)
+            {
+                int box_last = M_Bind_Redo(&boxes[i]);
+                if (box_last)
+                {
+                    switch (box_last)
+                    {
+                        case const_U: boxes[i].pos[1] += thing_S; break;
+                        case const_D: boxes[i].pos[1] -= thing_S; break;
+                        case const_L: boxes[i].pos[0] += thing_S; break;
+                        case const_R: boxes[i].pos[0] -= thing_S; break;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -559,7 +573,7 @@ int P_Coll(thing object, int dir, thing *box)
     }
 
     for (int i = 0; i < wall_count; i++)
-        if (nx == static_map[i].x && ny == static_map[i].y)
+        if (nx == static_map[i].x && ny == static_map[i].y && static_map[i].type == 'x')
             return 1;
 
     for (int i = 0; i < box_count; i++)
@@ -581,4 +595,28 @@ int P_Coll(thing object, int dir, thing *box)
     return 0;
 }
 
-//FUNCTION 20 - Push Box Check
+//FUNCTION 20 - Win Check
+int P_Check_Win(thing *boxes)
+{
+    if (!boxes) return 0;
+    
+    int bomb_count = 0;
+    for (int i = 0; i < wall_count; i++)
+    {
+        if (static_map[i].type == '!')
+        {
+            bomb_count++;
+            int covered = 0;
+            for (int j = 0; j < box_count; j++)
+            {
+                if (boxes[j].pos[0] == static_map[i].x && boxes[j].pos[1] == static_map[i].y)
+                {
+                    covered = 1;
+                    break;
+                }
+            }
+            if (!covered) return 0;
+        }
+    }
+    return (bomb_count > 0) ? 1 : 0; 
+}
