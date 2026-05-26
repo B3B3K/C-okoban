@@ -228,15 +228,43 @@ int I_Handle(SDL_Event *event, thing *object, motion *mo, thing *boxes)
         case SDLK_u:
         {
             int last = M_Bind_Redo(object);
-            if (last) MO_Start(mo, last + 100); //+100 offset signals redo direction
+            if (last)
+            {
+                for (int i = 0; i < box_count; i++)
+                {
+                    int box_last = M_Bind_Redo(&boxes[i]);
+                    if (box_last)
+                    {
+                        switch (box_last)
+                        {
+                            case const_U: boxes[i].pos[1] += thing_S; break;
+                            case const_D: boxes[i].pos[1] -= thing_S; break;
+                            case const_L: boxes[i].pos[0] += thing_S; break;
+                            case const_R: boxes[i].pos[0] -= thing_S; break;
+                        }
+                    }
+                }
+                MO_Start(mo, last + 100);
+            }
             return const_K;
         }
         default: return 0;
     }
-    if (key && !P_Coll(*object, key, boxes)) 
+    if (key)
     {
-        M_Bind_Log(object, key);
-        MO_Start(mo, key);
+        int old_x[200], old_y[200];
+        for (int i = 0; i < box_count; i++) {
+            old_x[i] = boxes[i].pos[0];
+            old_y[i] = boxes[i].pos[1];
+        }
+        if (!P_Coll(*object, key, boxes)) 
+        {
+            M_Bind_Log(object, key);
+            MO_Start(mo, key);
+            for (int i = 0; i < box_count; i++)
+                if (boxes[i].pos[0] == old_x[i] && boxes[i].pos[1] == old_y[i])
+                    M_Bind_Log(&boxes[i], 0);
+        }
     }
     return key;
 }
@@ -327,8 +355,6 @@ int P_Wall(thing *object)
 //FUNCTION 10 - Move Object With Wall Check
 static void M_Thing(thing *object, const int key)
 {
-    
-
     switch (key)
     {
         case const_U: object->pos[1] -= speed_Y; object->pos[2] = const_U; break;
@@ -549,10 +575,10 @@ int P_Coll(thing object, int dir, thing *box)
             case const_L: box[i].pos[0] -= thing_S; break;
             case const_R: box[i].pos[0] += thing_S; break;
         }
+        M_Bind_Log(&box[i], dir);
         return 0;
     }
     return 0;
 }
 
 //FUNCTION 20 - Push Box Check
-
