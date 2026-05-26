@@ -153,6 +153,7 @@ int main(int argc, char *argv[])
     thing *boxes = NULL;
 
     int current_map = 0;
+    int total_steps = 0;
 
     while (sukuban.running)
     {
@@ -161,7 +162,10 @@ int main(int argc, char *argv[])
             if (event.type == SDL_QUIT) sukuban.running = 0;
 
             if (event.type == SDL_KEYDOWN && !move.active)
+            {
                 I_Handle(&event, &player, &move, boxes);
+                if (move.active) total_steps++;
+            }
         }
 
         MO_Tick(&move, &player, &player_sprite, boxes);
@@ -179,10 +183,19 @@ int main(int argc, char *argv[])
         D_Thing(sukuban.renderer, &player, &player_sprite);
         SDL_RenderPresent(sukuban.renderer);
 
+        int valid_redos = 0;
+        for (int i = 0; i < count_R; i++) {
+            if (player.redo[i] != -1) valid_redos++;
+        }
+        char title_text[128];
+        sprintf(title_text, "C-okoban | Adim: %d | Redo: %d)", total_steps, valid_redos, count_R - valid_redos);
+        SDL_SetWindowTitle(sukuban.window, title_text);
+
         if (!move.active && P_Check_Win(boxes))
         {
-            printf("\nHarita %d tamamlandi! Yeni haritaya geciliyor...", current_map);
+            printf("%d fin\n", current_map);
             current_map++;
+            total_steps = 0;
             for (int i = 0; i < count_R; i++) player.redo[i] = -1; 
         }
 
