@@ -22,6 +22,8 @@
 #define r_P         0
 #define g_P         0
 #define b_P         0
+#define player_X    80
+#define player_Y    160
 
 #define FRAME_COUNT     4
 #define FRAME_STEP      20

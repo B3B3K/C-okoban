@@ -17,4 +17,6 @@ void   M_Bind_Log (thing *object, const int key);
 
 int    M_Bind_Redo(thing *object);
 
-#endif 
+void   P_Reset_Player(thing *player);
+
+#endif

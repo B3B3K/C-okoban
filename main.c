@@ -106,13 +106,30 @@ int main(int argc, char *argv[])
             if (player.redo[i] != -1) valid_redos++;
 
         char title_text[128];
-        sprintf(title_text, "C-okoban | Adim: %d | Redo: %d | Level: %d", total_steps, valid_redos, current_map + 1);
+        sprintf(title_text, "C-okoban | Level: %d | Adim: %d | Redo: %d ", current_map + 1, total_steps, valid_redos);
         SDL_SetWindowTitle(sukuban.window, title_text);
 
         if (!move.active && P_Check_Win(boxes))
         {
             printf("%d fin\n", current_map);
-            current_map++;
+            char next_filename[20];
+            sprintf(next_filename, "%d.txt", current_map + 1);
+            FILE *check = fopen(next_filename, "r");
+            
+            if (check)
+            {
+                fclose(check);
+                D_Show_Next_Level(sukuban.renderer, sukuban.window, current_map + 1, &box_sprite, &player, boxes);
+                if (!sukuban.running) break;
+                current_map++;
+                P_Reset_Player(&player);
+            }
+            else
+            {
+                D_Show_Game_End(sukuban.renderer, sukuban.window, &sukuban.running);
+                break;
+            }
+            
             total_steps = 0;
             for (int i = 0; i < count_R; i++) player.redo[i] = -1;
         }

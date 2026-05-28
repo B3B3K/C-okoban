@@ -189,3 +189,10 @@ int P_Check_Win(thing *boxes)
     }
     return (bomb_count > 0) ? 1 : 0;
 }
+
+//FUNCTION 21 - Reset Player Position
+void P_Reset_Player(thing *player)
+{
+    player->pos[0] = player_X;
+    player->pos[1] = player_Y;
+}
