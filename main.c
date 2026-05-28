@@ -176,6 +176,16 @@ int main(int argc, char *argv[])
         D_Grid(sukuban.renderer, window_X, window_Y);
         D_Color(&player);
         boxes = P_Map(current_map, sukuban.renderer);
+        if (!boxes && current_map > 0) {
+            SDL_SetWindowTitle(sukuban.window, "YOU WIN!");
+            SDL_Texture* win_tex = IMG_LoadTexture(sukuban.renderer, "w.png");
+            while (sukuban.running) {
+                while (SDL_PollEvent(&event)) if (event.type == SDL_QUIT) sukuban.running = 0;
+                SDL_RenderCopy(sukuban.renderer, win_tex, NULL, NULL);
+                SDL_RenderPresent(sukuban.renderer);
+            }
+            break;
+        }
         for (int i = 0; i < box_count; i++)
         {
             D_Thing(sukuban.renderer, &boxes[i], &box_sprite);
@@ -188,7 +198,7 @@ int main(int argc, char *argv[])
             if (player.redo[i] != -1) valid_redos++;
         }
         char title_text[128];
-        sprintf(title_text, "C-okoban | Adim: %d | Redo: %d)", total_steps, valid_redos, count_R - valid_redos);
+        sprintf(title_text, "C-okoban | Adim: %d | Redo: %d", total_steps, valid_redos, count_R - valid_redos);
         SDL_SetWindowTitle(sukuban.window, title_text);
 
         if (!move.active && P_Check_Win(boxes))
