@@ -108,3 +108,6 @@ scp mygame root@<device-ip>:/storage/custom/
 systemctl stop emustation
 LD_LIBRARY_PATH=/usr/lib/glesonly:/usr/lib/mali:/usr/lib ./mygame
 ```
+## Screenshots
+![ARM Device Gameplay](./github/ezgif-6bff9b7ce95db238.gif)
+![Windows device ingameScreenshot](./github/Ekran%20görüntüsü%202026-05-29%20131558.png)
